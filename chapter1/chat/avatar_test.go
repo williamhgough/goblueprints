@@ -53,18 +53,20 @@ func TestGravatarAvatar(t *testing.T) {
 func TestFileSystemAvatar(t *testing.T) {
 	// make a test avatar file
 	filename := path.Join("avatars", "abc.jpg")
-	if err := ioutil.WriteFile(filename, []byte{}, 0777); err != nil {
-		t.Error("Could not write test file")
-	}
+	ioutil.WriteFile(filename, []byte{}, 0777)
 	defer func() { os.Remove(filename) }()
 
 	var fileAvatar FileSystemAvatar
-	user := &chatUser{uniqueID: "abc"}
+	// seed user with wrong ID
+	user := &chatUser{uniqueID: "123"}
 	url, err := fileAvatar.GetAvatarURL(user)
-	if err != nil {
-		t.Errorf("fileAvatar.GetAvatarURL should not return an error - %s", err.Error())
+	// ensure error returned is ErrNoAvatarURL
+	if err != ErrNoAvatarURL {
+		t.Error("fileAvatar.GetAvatarURL should not return an error")
 	}
 
+	user.uniqueID = "abc"
+	url, err = fileAvatar.GetAvatarURL(user)
 	if url != "/avatars/abc.jpg" {
 		t.Errorf("fileAvatar.GetAvatarURL wrongly returned %s", url)
 	}

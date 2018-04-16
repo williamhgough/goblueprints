@@ -22,7 +22,11 @@ import (
 )
 
 // set avatar implementation
-var avatars Avatar = UseFileSystem
+var avatars Avatar = TryAvatars{
+	UseFileSystem,
+	UseAuthAvatar,
+	UseGravatar,
+}
 
 // templ represents a single template
 type templateHandler struct {
