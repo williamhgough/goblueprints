@@ -6,17 +6,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/subosito/gotenv"
 	"github.com/williamhgough/goblueprints/thesaurus"
 )
 
 func init() {
-	gotenv.Load()
 }
 
 func main() {
-	apiKey := os.Getenv("BHT_API_KEY")
-	thesaurus := &thesaurus.BigHugh{APIKey: apiKey}
+	thesaurus := &thesaurus.BigHugh{APIKey: "788ebfc31d7ce57fec47c8932b52f60d"}
 
 	s := bufio.NewScanner(os.Stdin)
 	for s.Scan() {

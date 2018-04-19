@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -24,7 +25,8 @@ type words struct {
 
 func (b *BigHugh) Synonyms(term string) ([]string, error) {
 	var syns []string
-	url := fmt.Sprintf("%s/%s/%s/json", BHT_URL, b.APIKey, term)
+	url := fmt.Sprintf("%s%s/%s/json", BHT_URL, b.APIKey, term)
+	log.Println(url)
 	res, err := http.Get(url)
 	if err != nil {
 		return syns, errors.New("Bighugh: failed when looking for synonyms for\"" + term + "\" " + err.Error())
