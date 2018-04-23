@@ -1,17 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/garyburd/go-oauth/oauth"
 	"github.com/joeshaw/envdecode"
+	nsq "github.com/nsqio/go-nsq"
 )
 
 var conn net.Conn
@@ -89,4 +92,91 @@ func makeRequest(req *http.Request, params url.Values) (*http.Response, error) {
 	req.Header.Set("Content-Length", strconv.Itoa(len(formEnc)))
 	req.Header.Set("Authorization", authClient.AuthorizationHeader(creds, "POST", req.URL, params))
 	return httpClient.Do(req)
+}
+
+type tweet struct {
+	Text string
+}
+
+func readFromTweet(votes chan<- string) {
+	options, err := loadOptions()
+	if err != nil {
+		log.Println("Failed to load options:", err)
+		return
+	}
+
+	u, err := url.Parse("https://stream.twitter.com/1.1/statuses/filter.json")
+	if err != nil {
+		log.Println("Creating filter request failed:", err)
+		return
+	}
+
+	query := make(url.Values)
+	query.Set("track", strings.Join(options, ","))
+
+	req, err := http.NewRequest("POST", u.String(), strings.NewReader(query.Encode()))
+	if err != nil {
+		log.Println("creating filter request failed", err)
+		return
+	}
+
+	resp, err := makeRequest(req, query)
+	if err != nil {
+		log.Println("making req failed", err)
+		return
+	}
+
+	reader := resp.Body
+	decoder := json.NewDecoder(reader)
+	for {
+		var tweet tweet
+		if err := decoder.Decode(&tweet); err != nil {
+			break
+		}
+
+		for _, option := range options {
+			if strings.Contains(strings.ToLower(tweet.Text), strings.ToLower(option)) {
+				log.Println("vote", option)
+				votes <- option
+			}
+		}
+	}
+}
+
+func startTwitterStream(stopchan <-chan struct{}, votes chan<- string) <-chan struct{} {
+	stoppedchan := make(chan struct{}, 1)
+	go func() {
+		defer func() {
+			stoppedchan <- struct{}{}
+		}()
+		for {
+			select {
+			case <-stopchan:
+				log.Println("stopping twitter...")
+				return
+			default:
+				log.Println("Querying twitter...")
+				readFromTweet(votes)
+				log.Println("  (waiting)")
+				// wait before reconnecting
+				time.Sleep(10 * time.Second)
+			}
+		}
+	}()
+	return stoppedchan
+}
+
+func publishVotes(votes <-chan string) <-chan struct{} {
+	stopchan := make(chan struct{}, 1)
+	pub, _ := nsq.NewProducer("localhost:4150", nsq.NewConfig())
+	go func() {
+		for vote := range votes {
+			pub.Publish("votes", []byte(vote))
+		}
+		log.Println("Publisher: Stopping")
+		pub.Stop()
+		log.Println("Publisher: Stopped")
+		stopchan <- struct{}{}
+	}()
+	return stopchan
 }
