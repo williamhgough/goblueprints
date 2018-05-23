@@ -11,8 +11,8 @@ import (
 type Answer struct {
 	Key    *datastore.Key `json:"id" datastore:"-"`
 	CTime  time.Time      `json:"created"`
-	Answer string         `json:"answer"`
-	User   UserCard       `json:"user"`
+	Answer string         `json:"answer" datastore:",noindex"`
+	User   UserCard       `json:"user" datastore:",noindex"`
 	Score  int            `json:"score"`
 }
 
@@ -87,4 +87,18 @@ func GetAnswers(ctx context.Context, questionKey *datastore.Key) ([]*Answer, err
 		return nil, err
 	}
 	return answers, nil
+}
+
+type AnswerCard struct {
+	Key    *datastore.Key `json:"id" datastore:",noindex"`
+	Answer string         `json:"answer" datastore:",noindex"`
+	User   UserCard       `json:"user" datastore:",noindex"`
+}
+
+func (q Answer) Card() AnswerCard {
+	return AnswerCard{
+		Key:    q.Key,
+		Answer: q.Answer,
+		User:   q.User,
+	}
 }

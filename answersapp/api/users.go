@@ -39,6 +39,7 @@ func UserFromAEUser(ctx context.Context) (*User, error) {
 	appUser.UserID = aeuser.ID
 	appUser.DisplayName = aeuser.String()
 	appUser.AvatarURL = gravatarURL(aeuser.Email)
+	return &appUser, err
 }
 
 func gravatarURL(email string) string {
