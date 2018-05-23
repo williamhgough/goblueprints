@@ -1,12 +1,13 @@
 package api
 
 import (
-	"context"
 	"crypto/md5"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
+
+	"golang.org/x/net/context"
 
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/user"

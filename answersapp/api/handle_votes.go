@@ -42,7 +42,7 @@ func handleVote(w http.ResponseWriter, r *http.Request) {
 
 	vote, err := CastVote(ctx, answerKey, newVote.Score)
 	if err != nil {
-		respondErr(ctx, w, r, vote, http.StatusInternalServerError)
+		respondErr(ctx, w, r, err, http.StatusInternalServerError)
 		return
 	}
 	respond(ctx, w, r, vote, http.StatusCreated)
